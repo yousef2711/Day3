@@ -1,10 +1,19 @@
 const userService = require("../services/usersService");
 const { success, error } = require("../utils/apiResponse");
 
-const createUser = async (req, res, next) => {
+const signUp = async (req, res, next) => {
   try {
-    const user = await userService.createUser(req.body);
+    const user = await userService.signUp(req.body);
     return success(res, 201, "User created successfully", user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const signIn = async (req, res, next) => {
+  try {
+    const { token, user } = await userService.signIn(req.body);
+    return success(res, 200, "Sign in successful", { token, user });
   } catch (err) {
     next(err);
   }
@@ -65,7 +74,8 @@ const updateUser = async (req, res, next) => {
 };
 
 module.exports = {
-  createUser,
+  signUp,
+  signIn,
   getUserById,
   getAllUsers,
   countUsers,

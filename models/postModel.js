@@ -19,10 +19,10 @@ const postSchema = new mongoose.Schema(
       enum: ["Tech", "Life", "Health", "Education"],
       default: "Life",
     },
-    author: {
-      type: String,
-      required: [true, "Author is required"],
-      trim: true,
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'Author is required'],
     },
   },
   {

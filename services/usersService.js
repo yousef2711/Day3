@@ -1,8 +1,33 @@
 const User = require("../models/userModel");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const APIError = require('../utils/apiError');
 
-const createUser = async ({ name, email, password, age, bio }) => {
-  const user = await User.create({ name, email, password, age, bio });
+const signUp = async ({ name, email, password, age, bio }) => {
+  const existing = await User.findOne({ email });
+  if (existing) {
+    throw new APIError('Email already in use', 400);
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  const user = await User.create({ name, email, password: hashed, age, bio });
   return user;
+};
+
+const signIn = async ({ email, password }) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new APIError('Invalid email or password', 401);
+  }
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) {
+    throw new APIError('Invalid email or password', 401);
+  }
+
+  const token = jwt.sign({ userId: user._id.toString(), role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+  return { token, user };
 };
 
 const getUserById = async (id) => {
@@ -58,7 +83,8 @@ const updateUser = async (id, data) => {
 };
 
 module.exports = {
-  createUser,
+  signUp,
+  signIn,
   getUserById,
   getAllUsers,
   countUsers,

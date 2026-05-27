@@ -19,11 +19,7 @@ const postSchema = Joi.object({
     .messages({
       "any.only": "Category must be one of Tech, Life, Health, Education",
     }),
-  author: Joi.string().required().messages({
-    "string.base": "Author must be a string",
-    "string.empty": "Author is required",
-    "any.required": "Author is required",
-  }),
+  // author is set from the authenticated user (server-side)
 }).options({
   abortEarly: false,
   allowUnknown: false,

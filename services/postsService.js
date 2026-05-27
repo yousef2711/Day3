@@ -1,11 +1,12 @@
 const Post = require("../models/postModel");
+const APIError = require('../utils/apiError');
 
-const createPost = async (data) => {
-  const post = await Post.create(data);
+const createPost = async (data, userId) => {
+  const post = await Post.create({ ...data, userId });
   return post;
 };
 
-const getAllPosts = async (query) => {
+const getAllPosts = async (query, userId) => {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -19,14 +20,20 @@ const getAllPosts = async (query) => {
   }
 
   const [posts, totalResults] = await Promise.all([
-    Post.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+    Post.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('userId', 'name email'),
     Post.countDocuments(filter),
   ]);
+
+  const postsWithOwnership = posts.map((p) => {
+    const obj = p.toObject();
+    obj.isOwner = p.userId && p.userId._id.toString() === String(userId);
+    return obj;
+  });
 
   const totalPages = Math.ceil(totalResults / limit);
 
   return {
-    posts,
+    posts: postsWithOwnership,
     pagination: {
       page,
       limit,
@@ -36,21 +43,33 @@ const getAllPosts = async (query) => {
   };
 };
 
-const getPostById = async (id) => {
+const getPostById = async (id, userId) => {
+  const post = await Post.findById(id).populate('userId', 'name email');
+  if (!post) return null;
+  const obj = post.toObject();
+  obj.isOwner = post.userId && post.userId._id.toString() === String(userId);
+  return obj;
+};
+
+const updatePostById = async (id, data, userId) => {
   const post = await Post.findById(id);
-  return post;
+  if (!post) return null;
+  if (post.userId.toString() !== String(userId)) {
+    throw new APIError('Forbidden', 403);
+  }
+
+  Object.assign(post, data);
+  await post.save();
+  return await Post.findById(id).populate('userId', 'name email');
 };
 
-const updatePost = async (id, data) => {
-  const post = await Post.findByIdAndUpdate(id, data, {
-    new: true,
-    runValidators: true,
-  });
-  return post;
-};
-
-const deletePost = async (id) => {
-  const post = await Post.findByIdAndDelete(id);
+const deletePostById = async (id, userId) => {
+  const post = await Post.findById(id);
+  if (!post) return null;
+  if (post.userId.toString() !== String(userId)) {
+    throw new APIError('Forbidden', 403);
+  }
+  await post.deleteOne();
   return post;
 };
 
@@ -58,6 +77,6 @@ module.exports = {
   createPost,
   getAllPosts,
   getPostById,
-  updatePost,
-  deletePost,
+  updatePostById,
+  deletePostById,
 };

@@ -1,9 +1,11 @@
 const postsService = require("../services/postsService");
 const { success, error } = require("../utils/apiResponse");
+const APIError = require('../utils/apiError');
 
 const createPost = async (req, res, next) => {
   try {
-    const post = await postsService.createPost(req.body);
+    const userId = req.user.userId;
+    const post = await postsService.createPost(req.body, userId);
     return success(res, 201, "Post created successfully", post);
   } catch (err) {
     next(err);
@@ -12,7 +14,8 @@ const createPost = async (req, res, next) => {
 
 const getAllPosts = async (req, res, next) => {
   try {
-    const result = await postsService.getAllPosts(req.query);
+    const userId = req.user.userId;
+    const result = await postsService.getAllPosts(req.query, userId);
     return success(res, 200, "Posts fetched successfully", result);
   } catch (err) {
     next(err);
@@ -21,9 +24,10 @@ const getAllPosts = async (req, res, next) => {
 
 const getPostById = async (req, res, next) => {
   try {
-    const post = await postsService.getPostById(req.params.id);
+    const userId = req.user.userId;
+    const post = await postsService.getPostById(req.params.id, userId);
     if (!post) {
-      return error(res, 404, "Post not found");
+      throw new APIError('Post not found', 404);
     }
     return success(res, 200, "Post fetched successfully", post);
   } catch (err) {
@@ -31,11 +35,12 @@ const getPostById = async (req, res, next) => {
   }
 };
 
-const updatePost = async (req, res, next) => {
+const updatePostById = async (req, res, next) => {
   try {
-    const post = await postsService.updatePost(req.params.id, req.body);
+    const userId = req.user.userId;
+    const post = await postsService.updatePostById(req.params.id, req.body, userId);
     if (!post) {
-      return error(res, 404, "Post not found");
+      throw new APIError('Post not found', 404);
     }
     return success(res, 200, "Post updated successfully", post);
   } catch (err) {
@@ -43,11 +48,12 @@ const updatePost = async (req, res, next) => {
   }
 };
 
-const deletePost = async (req, res, next) => {
+const deletePostById = async (req, res, next) => {
   try {
-    const post = await postsService.deletePost(req.params.id);
+    const userId = req.user.userId;
+    const post = await postsService.deletePostById(req.params.id, userId);
     if (!post) {
-      return error(res, 404, "Post not found");
+      throw new APIError('Post not found', 404);
     }
     return success(res, 200, "Post deleted successfully");
   } catch (err) {
@@ -59,6 +65,6 @@ module.exports = {
   createPost,
   getAllPosts,
   getPostById,
-  updatePost,
-  deletePost,
+  updatePostById,
+  deletePostById,
 };
